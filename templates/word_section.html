@@ -12,7 +12,7 @@
     <tbody>
         {% for word in words %}
         <tr>
-            <td class="col-number">{{ word.global_index }}</td> {# Используем глобальный номер #}
+            <td class="col-number">{{ word.global_index }}</td>
             <td class="col-word">{{ word.german_word }}</td>
             <td class="col-transcription">{{ word.transcription }}</td>
             <td class="col-translation">{{ word.translation }}</td>
@@ -20,3 +20,8 @@
         {% endfor %}
     </tbody>
 </table>
+
+{# Добавляем разрыв страницы перед диалогами, если они есть #}
+{% if has_dialogues %}
+<div class="page-break"></div>
+{% endif %}

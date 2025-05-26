@@ -1,43 +1,62 @@
-<h2>{{ category_name }}</h2>
-
-{% for dialogue in dialogues %}
-<div class="dialogue-section dialogue-category-{{ category_slug }}">
-    {% if dialogue.title %}
-        <h3>{{ dialogue.title }}</h3>
-    {% endif %}
-
-    <div class="dialogue-wrapper">
-        {% if dialogue.image_path %}
-            <img src="{{ dialogue.image_path }}" alt="Dialogue Illustration for {{ category_name }}" class="dialogue-image">
+{# Обертка для всех диалогов категории #}
+<div class="dialogues-wrapper">
+    <h2>{{ category_name }}</h2>
+    
+    {% for dialogue in dialogues %}
+    {% set line_count = dialogue.parsed_lines|length if dialogue.parsed_lines else 0 %}
+    <div class="dialogue-section dialogue-category-{{ category_slug }} 
+         {% if not dialogue.image_path %}no-image{% endif %}
+         {% if line_count > 10 %}compact{% endif %}
+         {% if line_count > 15 %}extra-long{% endif %}">
+        
+        {% if dialogue.title %}
+            <h3>{{ dialogue.title }}</h3>
         {% endif %}
 
-        <div class="chat-container">
-            {% if dialogue.parsed_lines %}
-                {# Используем парсированные данные из Python #}
-                {% for line in dialogue.parsed_lines %}
-                    {% if line.type == 'message' %}
-                        <div class="chat-message {{ 'alt' if line.is_alt else '' }}">
-                            <div class="chat-avatar {{ line.speaker_data.class }}">
-                                {{ line.speaker_data.initial }}
-                            </div>
-                            <div class="chat-content">
-                                <div class="chat-speaker">{{ line.speaker }}</div>
-                                <div class="chat-text">{{ line.text | safe }}</div>
-                            </div>
-                        </div>
-                    {% elif line.type == 'system' %}
-                        <div class="chat-system-message">
-                            {{ line.text | safe }}
-                        </div>
-                    {% endif %}
-                {% endfor %}
-            {% else %}
-                {# Fallback: простой вывод текста, если парсинг не сработал #}
-                <div class="chat-system-message">
-                    {{ dialogue.text | safe }}
-                </div>
+        <div class="dialogue-container">
+            {% if dialogue.image_path %}
+                <img src="{{ dialogue.image_path }}" alt="Dialogue Illustration" class="dialogue-image">
             {% endif %}
+
+            <div class="dialogue-content">
+                {% if dialogue.parsed_lines %}
+                    {% for line in dialogue.parsed_lines %}
+                        {% if line.type == 'message' %}
+                            <div class="dialogue-line">
+                                <div class="dialogue-speaker">
+                                    <span class="speaker-indicator {{ line.speaker_data.class }}"></span>
+                                    {{ line.speaker }}:
+                                </div>
+                                <div class="dialogue-text">
+                                    {{ line.text | safe }}
+                                </div>
+                                {% if line.translation %}
+                                    <div class="dialogue-translation">
+                                        {{ line.translation | safe }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% elif line.type == 'description' %}
+                            <div class="dialogue-description">
+                                {{ line.text | safe }}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    {# Fallback для неразобранных диалогов #}
+                    <div class="dialogue-line">
+                        <div class="dialogue-text">
+                            {% set fallback_lines = dialogue.text.split('\n') %}
+                            {% for fline in fallback_lines %}
+                                {% if fline.strip() %}
+                                    {{ fline | safe }}<br>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
         </div>
     </div>
+    {% endfor %}
 </div>
-{% endfor %}

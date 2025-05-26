@@ -206,60 +206,121 @@ def load_and_prepare_data(book_input_dir):
 
 def parse_dialogue_text(dialogue_text):
     """
-    Парсит текст диалога и возвращает структурированные данные для chat-style.
-    Ожидаемый формат: "Имя: текст" или "A: текст"
+    Парсит текст диалога с эмодзи и переводами.
+    Поддерживает форматы:
+    - 👩‍🦰 Anna: текст
+    - Kollege (Max): текст
+    - (Lacht) текст
     """
-    lines = dialogue_text.split('\n')
+    lines = dialogue_text.strip().split('\n')
     parsed_lines = []
-    speakers = {}
     speaker_count = 0
+    speakers = {}
     
-    for line in lines:
-        line = line.strip()
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
         if not line:
+            i += 1
             continue
-            
-        # Пытаемся найти паттерн "Говорящий: текст"
-        if ':' in line:
-            parts = line.split(':', 1)
-            potential_speaker = parts[0].strip()
-            
-            # Проверяем, что это действительно имя говорящего (не слишком длинное)
-            if len(potential_speaker) <= 20 and not any(char in potential_speaker for char in ['?', '!', '.', ',']):
-                speaker = potential_speaker
-                text = parts[1].strip() if len(parts) > 1 else ''
+        
+        # Улучшенный паттерн для поиска говорящего
+        # Поддерживает: эмодзи, имя, имя (уточнение), просто имя с двоеточием
+        patterns = [
+            r'^(?:[^\w\s]+\s*)?(\w+)\s*\([^)]+\):\s*(.+)$',  # Kollege (Max): текст
+            r'^(?:[^\w\s]+\s*)?(\w+):\s*(.+)$',               # Anna: текст или 👩‍🦰 Anna: текст
+            r'^\([^)]+\)\s*(.+)$'                             # (Lacht) текст - особый случай
+        ]
+        
+        matched = False
+        for pattern in patterns:
+            match = re.match(pattern, line)
+            if match:
+                if len(match.groups()) == 2:  # Обычный формат с говорящим
+                    speaker = match.group(1)
+                    text = match.group(2)
+                else:  # Формат (действие) текст
+                    # Это системное сообщение
+                    parsed_lines.append({
+                        'type': 'description',
+                        'text': line
+                    })
+                    matched = True
+                    break
                 
                 # Присваиваем каждому новому говорящему индекс
                 if speaker not in speakers:
                     speaker_count += 1
                     speakers[speaker] = {
                         'index': speaker_count,
-                        'initial': speaker[0].upper(),
-                        'class': ['speaker-a', 'speaker-b', 'speaker-c', 'speaker-d'][(speaker_count - 1) % 4]
+                        'class': get_speaker_class(speaker, speaker_count)
                     }
+                
+                # Проверяем следующую строку на перевод
+                translation = None
+                if i + 1 < len(lines):
+                    next_line = lines[i + 1].strip()
+                    # Если следующая строка не пустая и не содержит паттерн говорящего
+                    if next_line and not any(re.match(p, next_line) for p in patterns):
+                        translation = next_line
+                        i += 1  # Пропускаем строку с переводом
                 
                 parsed_lines.append({
                     'type': 'message',
                     'speaker': speaker,
                     'speaker_data': speakers[speaker],
                     'text': text,
-                    'is_alt': speaker_count % 2 == 0  # Чередуем стороны для разных говорящих
+                    'translation': translation
                 })
+                matched = True
+                break
+        
+        if not matched:
+            # Строка не соответствует паттернам - возможно это отдельный перевод или описание
+            # Проверяем, не является ли это переводом для предыдущей реплики без перевода
+            if parsed_lines and parsed_lines[-1]['type'] == 'message' and not parsed_lines[-1]['translation']:
+                # Добавляем как перевод к последней реплике
+                parsed_lines[-1]['translation'] = line
             else:
-                # Это не реплика, а обычный текст
+                # Иначе это описание
                 parsed_lines.append({
-                    'type': 'system',
+                    'type': 'description',
                     'text': line
                 })
-        else:
-            # Строка без двоеточия - системное сообщение
-            parsed_lines.append({
-                'type': 'system',
-                'text': line
-            })
+        
+        i += 1
     
     return parsed_lines
 
+def get_speaker_class(speaker_name, index):
+    """
+    Возвращает CSS класс для говорящего на основе имени.
+    """
+    speaker_lower = speaker_name.lower()
+    
+    # Специальные классы для конкретных имен
+    special_classes = {
+        'anna': 'anna',
+        'анна': 'anna',
+        'jonas': 'jonas',
+        'йонас': 'jonas',
+        'verkäuferin': 'verkaeufer',
+        'apothekerin': 'apotheker',
+        'hausmeister': 'hausmeister',
+        'kollege': 'kollege',
+        'kollegin': 'kollegin',
+        'freund': 'freund',
+        'freundin': 'freundin',
+        'bekannter': 'bekannter',
+        'julia': 'julia'
+    }
+    
+    for key, css_class in special_classes.items():
+        if key in speaker_lower:
+            return css_class
+    
+    # Для остальных используем default-a, default-b и т.д.
+    return f'default-{chr(97 + (index - 1) % 4)}'  # a, b, c, d
 # --- generate_html_content (без изменений) ---
 def generate_html_content(template_data, book_input_dir):
     """Generates the full HTML string using Jinja2 templates."""
@@ -267,7 +328,7 @@ def generate_html_content(template_data, book_input_dir):
     intro_template = env.get_template('intro.html')
     word_template = env.get_template('word_section.html')
     dialogue_template = env.get_template('dialog_section.html')
-    logo_svg_path = os.path.join(book_input_dir, 'images', 'Skyeng Brand Icon.svg') # Лого для обложки
+    logo_svg_path = os.path.join(book_input_dir, 'images', 'Skyeng Brand Icon.svg')
 
     cover_html = cover_template.render(
         title=template_data.get('book_title', DEFAULT_BOOK_TITLE),
@@ -277,16 +338,31 @@ def generate_html_content(template_data, book_input_dir):
     intro_html = intro_template.render(
          intro_elements=template_data.get('intro_elements', [])
     )
+    
     category_sections_html = []
     for category in template_data['category_order']:
-        # ... (логика рендеринга слов и диалогов) ...
         if category not in template_data['words_by_category'] and category not in template_data['dialogues_by_category']:
              print(f"Info: Category '{category}' from defined order not found. Skipping.")
              continue
+        
+        # Сначала добавляем слова
         words = template_data['words_by_category'].get(category, [])
         if words:
-            mapped_words = [{'global_index': w.get('global_index'), 'german_word': w.get(WORDS_WORD_COL),'transcription': w.get(WORDS_TRANSCRIPTION_COL), 'translation': w.get(WORDS_TRANSLATION_COL)} for w in words]
-            category_sections_html.append(word_template.render(category_name=category, words=mapped_words))
+            mapped_words = [
+                {
+                    'global_index': w.get('global_index'), 
+                    'german_word': w.get(WORDS_WORD_COL),
+                    'transcription': w.get(WORDS_TRANSCRIPTION_COL), 
+                    'translation': w.get(WORDS_TRANSLATION_COL)
+                } 
+                for w in words
+            ]
+            category_sections_html.append(word_template.render(
+                category_name=category, 
+                words=mapped_words
+            ))
+        
+        # Затем добавляем диалоги (они уже содержат заголовок категории)
         dialogues = template_data['dialogues_by_category'].get(category, [])
         if dialogues:
             mapped_dialogues = []
@@ -297,10 +373,14 @@ def generate_html_content(template_data, book_input_dir):
                     'text': d.get(DIALOGUES_TEXT_COL, ''),
                     'parsed_lines': parse_dialogue_text(d.get(DIALOGUES_TEXT_COL, ''))
                 }
-            mapped_dialogues.append(dialogue_data)
+                mapped_dialogues.append(dialogue_data)
+            
             category_slug = slugify(category)
-            category_sections_html.append(dialogue_template.render(category_name=category, dialogues=mapped_dialogues, category_slug=category_slug))
-
+            category_sections_html.append(dialogue_template.render(
+                category_name=category, 
+                dialogues=mapped_dialogues, 
+                category_slug=category_slug
+            ))
 
     full_html = f"""
     <!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><title>{template_data.get('book_title', DEFAULT_BOOK_TITLE)}</title></head>
