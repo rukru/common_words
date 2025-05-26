@@ -1,17 +1,43 @@
 <h2>{{ category_name }}</h2>
 
 {% for dialogue in dialogues %}
-<div class="dialogue-section dialogue-category-{{ category_slug }}"> {# Добавлен класс #}
+<div class="dialogue-section dialogue-category-{{ category_slug }}">
     {% if dialogue.title %}
         <h3>{{ dialogue.title }}</h3>
     {% endif %}
 
-    {% if dialogue.image_path %}
-        <img src="{{ dialogue.image_path }}" alt="Dialogue Illustration for {{ category_name }}" class="dialogue-image">
-    {% endif %}
+    <div class="dialogue-wrapper">
+        {% if dialogue.image_path %}
+            <img src="{{ dialogue.image_path }}" alt="Dialogue Illustration for {{ category_name }}" class="dialogue-image">
+        {% endif %}
 
-    <div class="dialogue-text">
-        <p>{{ dialogue.text }}</p>
+        <div class="chat-container">
+            {% if dialogue.parsed_lines %}
+                {# Используем парсированные данные из Python #}
+                {% for line in dialogue.parsed_lines %}
+                    {% if line.type == 'message' %}
+                        <div class="chat-message {{ 'alt' if line.is_alt else '' }}">
+                            <div class="chat-avatar {{ line.speaker_data.class }}">
+                                {{ line.speaker_data.initial }}
+                            </div>
+                            <div class="chat-content">
+                                <div class="chat-speaker">{{ line.speaker }}</div>
+                                <div class="chat-text">{{ line.text | safe }}</div>
+                            </div>
+                        </div>
+                    {% elif line.type == 'system' %}
+                        <div class="chat-system-message">
+                            {{ line.text | safe }}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+                {# Fallback: простой вывод текста, если парсинг не сработал #}
+                <div class="chat-system-message">
+                    {{ dialogue.text | safe }}
+                </div>
+            {% endif %}
+        </div>
     </div>
 </div>
 {% endfor %}

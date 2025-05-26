@@ -204,6 +204,62 @@ def load_and_prepare_data(book_input_dir):
     data['category_order'] = CATEGORY_ORDER
     return data
 
+def parse_dialogue_text(dialogue_text):
+    """
+    Парсит текст диалога и возвращает структурированные данные для chat-style.
+    Ожидаемый формат: "Имя: текст" или "A: текст"
+    """
+    lines = dialogue_text.split('\n')
+    parsed_lines = []
+    speakers = {}
+    speaker_count = 0
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+            
+        # Пытаемся найти паттерн "Говорящий: текст"
+        if ':' in line:
+            parts = line.split(':', 1)
+            potential_speaker = parts[0].strip()
+            
+            # Проверяем, что это действительно имя говорящего (не слишком длинное)
+            if len(potential_speaker) <= 20 and not any(char in potential_speaker for char in ['?', '!', '.', ',']):
+                speaker = potential_speaker
+                text = parts[1].strip() if len(parts) > 1 else ''
+                
+                # Присваиваем каждому новому говорящему индекс
+                if speaker not in speakers:
+                    speaker_count += 1
+                    speakers[speaker] = {
+                        'index': speaker_count,
+                        'initial': speaker[0].upper(),
+                        'class': ['speaker-a', 'speaker-b', 'speaker-c', 'speaker-d'][(speaker_count - 1) % 4]
+                    }
+                
+                parsed_lines.append({
+                    'type': 'message',
+                    'speaker': speaker,
+                    'speaker_data': speakers[speaker],
+                    'text': text,
+                    'is_alt': speaker_count % 2 == 0  # Чередуем стороны для разных говорящих
+                })
+            else:
+                # Это не реплика, а обычный текст
+                parsed_lines.append({
+                    'type': 'system',
+                    'text': line
+                })
+        else:
+            # Строка без двоеточия - системное сообщение
+            parsed_lines.append({
+                'type': 'system',
+                'text': line
+            })
+    
+    return parsed_lines
+
 # --- generate_html_content (без изменений) ---
 def generate_html_content(template_data, book_input_dir):
     """Generates the full HTML string using Jinja2 templates."""
@@ -233,7 +289,15 @@ def generate_html_content(template_data, book_input_dir):
             category_sections_html.append(word_template.render(category_name=category, words=mapped_words))
         dialogues = template_data['dialogues_by_category'].get(category, [])
         if dialogues:
-            mapped_dialogues = [{'title': d.get('Dialogue Title Column', None),'image_path': d.get('image_path'),'text': d.get(DIALOGUES_TEXT_COL, '')} for d in dialogues]
+            mapped_dialogues = []
+            for d in dialogues:
+                dialogue_data = {
+                    'title': d.get('Dialogue Title Column', None),
+                    'image_path': d.get('image_path'),
+                    'text': d.get(DIALOGUES_TEXT_COL, ''),
+                    'parsed_lines': parse_dialogue_text(d.get(DIALOGUES_TEXT_COL, ''))
+                }
+            mapped_dialogues.append(dialogue_data)
             category_slug = slugify(category)
             category_sections_html.append(dialogue_template.render(category_name=category, dialogues=mapped_dialogues, category_slug=category_slug))
 
