@@ -1,0 +1,17 @@
+<h2>{{ category_name }}</h2>
+
+{% for dialogue in dialogues %}
+<div class="dialogue-section dialogue-category-{{ category_slug }}"> {# Добавлен класс #}
+    {% if dialogue.title %}
+        <h3>{{ dialogue.title }}</h3>
+    {% endif %}
+
+    {% if dialogue.image_path %}
+        <img src="{{ dialogue.image_path }}" alt="Dialogue Illustration for {{ category_name }}" class="dialogue-image">
+    {% endif %}
+
+    <div class="dialogue-text">
+        <p>{{ dialogue.text }}</p>
+    </div>
+</div>
+{% endfor %}

@@ -1,0 +1,242 @@
+/* ===========================================================================
+   style.css – Полный набор стилей для автоматической генерации PDF
+   Автор: ChatGPT‑o3, 2025‑04‑24
+   =========================================================================*/
+
+/* --------------------------------------------------------------------------
+   1. Шрифты / Fonts
+   --------------------------------------------------------------------------*/
+   @font-face {
+    font-family: 'StratosSkyeng';
+    src: url('fonts/stratosskyengweb-regular.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: 'StratosSkyeng';
+    src: url('fonts/stratosskyengweb-medium.woff2') format('woff2');
+    font-weight: 500;
+    font-style: normal;
+  }
+  
+  /* --------------------------------------------------------------------------
+     2. Настройка страниц / Page Setup (@page rules)
+     --------------------------------------------------------------------------*/
+  @page {
+    size: A4;
+    margin: 2cm;
+  
+    /* Номер страницы справа внизу */
+    @bottom-right {
+      content: counter(page);
+      font-family: 'StratosSkyeng', sans-serif;
+      font-size: 14pt;
+      color: #000;
+      padding-left: 0.5cm;
+      padding-bottom: 0.5cm;
+    }
+  
+    /* Логотип наверху (все страницы, кроме первой) */
+    @top-center {
+      content: element(page-logo);
+      vertical-align: bottom;
+      margin-top: 8mm;
+    }
+  }
+  @page:first {
+    @bottom-right { content: ""; }
+    @top-center  { content: none; } /* убираем логотип с обложки */
+  }
+  
+  /* --------------------------------------------------------------------------
+     3. Глобальные базовые стили
+     --------------------------------------------------------------------------*/
+  html,body {
+    font-family: 'StratosSkyeng', sans-serif;
+    font-size: 14pt;
+    line-height: 1.45;
+    color: #333;
+  }
+  
+  /* Утилита для явного разрыва страницы */
+  .page-break { page-break-before: always; }
+  
+  /* --------------------------------------------------------------------------
+     4. Заголовки / Headings
+     --------------------------------------------------------------------------*/
+  h1 {
+    font-size: 32pt;
+    text-align: center;
+    margin: 3cm 0 1cm;
+    font-weight: 500;
+  }
+  h2 {
+    font-size: 32pt;
+    margin: 2cm 0 1cm;
+    font-weight: 400;
+    break-before: always;
+    break-after: avoid;
+    break-inside: avoid;
+    text-align: left;
+  }
+  #main-content h2:first-of-type,
+  #intro-pages h2:first-of-type { break-before: auto; margin-top: 1cm; }
+  .intro-h2 {
+    break-before: avoid;
+  }
+  
+  h3 {
+    font-size: 18pt;
+    margin: 20px 0 10px;
+    font-weight: 500;
+    color: #4A4A4A;
+    break-after: avoid;
+  }
+  
+  /* --------------------------------------------------------------------------
+     5. Параграфы
+     --------------------------------------------------------------------------*/
+  p { margin: 0 0 0.8em; }
+  
+  /* --------------------------------------------------------------------------
+     6. Введение (intro)
+     --------------------------------------------------------------------------*/
+  .intro-section { margin: 1cm 0; }
+  .intro-section p {
+    font-size: 14pt;
+    line-height: 1.6;
+    margin: 0 0 1em;
+  }
+  .intro-image-container {
+    text-align: center;
+    margin: 1cm 0;
+    break-before: always;
+    break-after: avoid;
+  }
+  .intro-image-container img { max-height: 40px; }
+  
+  /* Таблицы intro */
+  .intro-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12pt;
+    margin: 20px 0;
+    page-break-inside: avoid;
+  }
+  .intro-table thead th {
+    background: #6fe4ff;
+    color: #000;
+    font-weight: 400;
+    border: 4px solid #fff;
+    line-height: 1.2;
+    padding: 8px;
+    /*border-bottom: 4px solid #fff;*/
+  }
+  .intro-table td {
+    background: #e4fbff;
+    border: 4px solid #fff;
+    padding: 8px 12px;
+    color: #4A4A4A;
+  }
+  .intro-table.grammar-table th:first-child { width: 30%; }
+  .intro-table.alphabet-table td:first-child { font-weight: 500; }
+  
+  /* --------------------------------------------------------------------------
+     7. Основная таблица слов
+     --------------------------------------------------------------------------*/
+  .word-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1cm 0 20px;
+    font-size: 12pt;
+  }
+  .word-table thead { display: table-header-group; }
+  .word-table thead th {
+    background: #6fe4ff;
+    border: 4px solid #fff;
+    font-weight: 400;
+  }
+  .word-table td { border: 4px solid #fff; }
+  .word-table th,
+  .word-table td {
+    background: #e4fbff;
+    padding: 9px 4px;
+    text-align: left;
+    color: #333;
+  }
+  .word-table .col-number {
+    width: 6%;
+    min-width: 6%;
+    text-align: right;
+    color: #555;
+    font-size: 10pt;
+    padding-right: 10px;
+  }
+  .word-table .col-word { width: 31%; padding-left: 6px; }
+  .word-table .col-transcription { width: 31%; color: #777; }
+  .word-table .col-transcription thead {color: #000;}
+  .word-table .col-translation { width: 32%; }
+  .word-table tbody tr:last-child td { border-bottom: none; }
+  /* Правило для предотвращения разрыва строк в основной таблице слов */
+.word-table tbody tr {
+    page-break-inside: avoid;
+  }
+  
+  /* Правило для предотвращения разрыва строк в таблицах введения */
+  .intro-table tbody tr {
+    page-break-inside: avoid;
+  }
+  
+  /* Вы также можете применить это к заголовкам таблиц, если они разрываются */
+  .word-table thead,
+  .intro-table thead {
+     page-break-inside: avoid;
+  }
+  
+  /* --------------------------------------------------------------------------
+     8. Диалоги
+     --------------------------------------------------------------------------*/
+  .dialogue-section {
+    margin: 1cm 0;
+    padding: 12px 16px;
+    border: 1px solid #DDDDDD;
+    border-radius: 6px;
+    background: #FAFAFA;
+    break-inside: avoid;
+  }
+  .dialogue-section h3 { margin-top: 0; }
+  .dialogue-section p  { margin: .4em 0; }
+  
+  .dialogue-image {
+    float: left;
+    max-width: 35%;
+    height: auto;
+    margin: 0 12px 8px 0;
+    break-inside: avoid;
+    border-radius: 3px;
+  }
+  .dialogue-section::after { content: ""; display: block; clear: both; }
+  
+  /* --------------------------------------------------------------------------
+     9. Обложка
+     --------------------------------------------------------------------------*/
+  .cover-logo { text-align: center; margin: 1cm 0 20px; }
+  .cover-logo img { max-height: 40px; }
+  .cover-subtitle {
+    font-size: 16pt;
+    text-align: center;
+    color: #555;
+    margin-bottom: 50px;
+    font-weight: 400;
+  }
+  
+  /* --------------------------------------------------------------------------
+     10. Логотип на каждой странице (бегущий элемент)
+     --------------------------------------------------------------------------*/
+  .page-logo {
+    display: block;
+    width: 50px; /* подгоните при необходимости */
+    height: auto;
+    position: running(page-logo);
+  }
+  
